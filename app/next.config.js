@@ -5,7 +5,12 @@ const nextConfig = {
   },
   images: {
     domains: ['images.unsplash.com']
-},
+  },
+  // Fix for OneDrive symlink issues
+  onDemandEntries: {
+    maxInactiveAge: 25 * 1000,
+    pagesBufferLength: 2,
+  },
 }
 
 module.exports = nextConfig

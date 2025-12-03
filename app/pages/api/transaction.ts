@@ -1,7 +1,6 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import type { NextApiRequest, NextApiResponse } from "next";
-import { PublicKey } from "@solana/web3.js";
-import { createWriteOrderInstruction, PizzaOrder } from "@/src/util/order";
+import { PublicKey, Transaction, SystemProgram } from "@solana/web3.js";
 import { CONNECTION, MERCHANT_WALLET } from "@/src/util/const";
 import { createTransfer } from "@solana/pay";
 import BigNumber from "bignumber.js";
@@ -48,7 +47,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
 }
 
 const get = async (req: NextApiRequest, res: NextApiResponse<GET>) => {
-  const label = "Solami Pizza";
+  const label = "Valentin's Pizza";
   const icon =
     "https://media.discordapp.net/attachments/964525722301501477/978683590743302184/sol-logo1.png";
 
@@ -59,44 +58,61 @@ const get = async (req: NextApiRequest, res: NextApiResponse<GET>) => {
 };
 
 const post = async (req: NextApiRequest, res: NextApiResponse<POST>) => {
-  const message = "Thanks for buying a Solami pizza!";
+  try {
+    const message = "Thanks for buying Valentin's pizza with USDC!";
 
-  const accountField = getFromPayload(req, "Body", "account");
-  const referenceField = getFromPayload(req, "Query", "reference");
-  const amountField = getFromPayload(req, "Query", "amount");
-  const token = getFromPayload(req, "Query", "token");
-  const order = Number.parseInt(getFromPayload(req, "Query", "order"));
-  const pepperoni = Number.parseInt(getFromPayload(req, "Query", "pepperoni"));
-  const mushrooms = Number.parseInt(getFromPayload(req, "Query", "mushrooms"));
-  const olives = Number.parseInt(getFromPayload(req, "Query", "olives"));
+    // Get account from body
+    const account = req.body?.account;
+    if (!account) {
+      throw new Error("Missing account in request body");
+    }
 
-  const sender = new PublicKey(accountField);
-  const reference = new PublicKey(referenceField);
-  const amount = Number.parseInt(amountField);
+    const sender = new PublicKey(account);
+    
+    // Use default USDC mint and small amount for devnet demo
+    const usdcMint = new PublicKey("EmXQ3SRJBt6j6SnCnqfnLmK3GEHMiA51msCft1r5num");
+    const amount = new BigNumber(1000); // 0.001 USDC for devnet
 
-  const transferConfig = {
-    recipient: MERCHANT_WALLET,
-    amount: new BigNumber(amount),
-    splToken: token === "SOL" ? undefined : new PublicKey(token),
-    reference,
-    memo: message,
-  };
+    // Create a reference for this transaction (random UUID)
+    const reference = new PublicKey(
+      Buffer.concat([
+        Buffer.from("solami"),
+        Buffer.from(Math.random().toString().slice(2), "utf8"),
+      ]).slice(0, 32)
+    );
 
-  const transaction = await createTransfer(CONNECTION, sender, transferConfig);
-  transaction.add(
-    await createWriteOrderInstruction(
-      sender,
-      new PizzaOrder({ order, pepperoni, mushrooms, olives })
-    )
-  );
+    // Create transfer configuration
+    const transferConfig = {
+      recipient: MERCHANT_WALLET,
+      amount: amount,
+      splToken: usdcMint,
+      reference,
+      memo: message,
+    };
 
-  // Serialize and return the unsigned transaction.
-  const serializedTransaction = transaction.serialize({
-    verifySignatures: false,
-    requireAllSignatures: false,
-  });
+    // Create the transaction using Solana Pay
+    const transaction = await createTransfer(CONNECTION, sender, transferConfig);
 
-  const base64Transaction = serializedTransaction.toString("base64");
+    // Get recent blockhash
+    const { blockhash } = await CONNECTION.getLatestBlockhash('confirmed');
+    transaction.recentBlockhash = blockhash;
+    transaction.feePayer = sender;
 
-  res.status(200).send({ transaction: base64Transaction, message });
+    // Serialize and return the unsigned transaction
+    const serializedTransaction = transaction.serialize({
+      verifySignatures: false,
+      requireAllSignatures: false,
+    });
+
+    const base64Transaction = serializedTransaction.toString("base64");
+
+    res.status(200).json({ transaction: base64Transaction, message });
+  } catch (error) {
+    console.error("Transaction creation error:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    res.status(400).json({ 
+      transaction: "", 
+      message: `Error: ${errorMessage}` 
+    });
+  }
 };

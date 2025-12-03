@@ -1,4 +1,7 @@
+'use client';
+
 import './globals.css'
+import ClientLayout from '@/src/components/ClientLayout'
 
 export default function RootLayout({
   children,
@@ -11,7 +14,11 @@ export default function RootLayout({
         <head /> will contain the components returned by the nearest parent
         head.tsx. Find out more at https://beta.nextjs.org/docs/api-reference/file-conventions/head
       */}
-      <body>{children}</body>
+      <body>
+        <ClientLayout>
+          {children}
+        </ClientLayout>
+      </body>
     </html>
   )
 }

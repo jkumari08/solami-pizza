@@ -1,7 +1,7 @@
 import { encodeURL, createQR } from '@solana/pay';
 import { FC, useEffect, useRef, useState } from 'react';
 import { PublicKey } from '@solana/web3.js';
-import { SIMULATED_BONK_MINT, SIMULATED_USDC_MINT } from '../util/const';
+import { SIMULATED_USDC_MINT } from '../util/const';
 
 
 type SupportedSplToken = {
@@ -77,13 +77,6 @@ const PayQR: FC<TransactionRequestQRProps> = (
             disabled={currentTokenSelection.symbol === 'USDC'}
           >
             USDC
-          </button>
-          <button
-            className={`rounded-lg border-solid border border-gray-500 bg-orange-400 p-2 bg-opacity-${currentTokenSelection.symbol === 'BONK' ? 20 : 60}`}
-            onClick={() => setCurrentTokenSelection({ symbol: 'BONK', mint: SIMULATED_BONK_MINT })}
-            disabled={currentTokenSelection.symbol === 'BONK'}
-          >
-            BONK
           </button>
         </li>
         {currentTokenSelection && (

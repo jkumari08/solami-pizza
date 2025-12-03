@@ -1,3 +1,29 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  html.dark {
+    @apply bg-gray-900 text-white;
+  }
+
+  html.dark body {
+    @apply bg-gray-900 text-gray-100;
+  }
+}
+
+@layer components {
+  html.dark .bg-white {
+    @apply bg-gray-800;
+  }
+
+  html.dark input,
+  html.dark textarea,
+  html.dark select {
+    @apply bg-gray-700 text-white border-gray-600;
+  }
+
+  html.dark button {
+    @apply transition-colors;
+  }
+}
